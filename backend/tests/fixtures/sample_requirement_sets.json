@@ -1,0 +1,71 @@
+{
+  "requirement_sets": [
+    {
+      "name": "S-Parameter Operational Band Requirements",
+      "test_type": "s_parameter",
+      "test_stage_id": 1,
+      "metric_limits": [
+        {
+          "metric_name": "gain",
+          "aggregation": "min",
+          "operator": ">=",
+          "limit_value": -10.0,
+          "frequency_band": {
+            "start_hz": 1e9,
+            "stop_hz": 2e9
+          },
+          "description": "Minimum gain in operational band"
+        },
+        {
+          "metric_name": "vswr",
+          "aggregation": "max",
+          "operator": "<=",
+          "limit_value": 2.0,
+          "frequency_band": {
+            "start_hz": 1e9,
+            "stop_hz": 2e9
+          },
+          "description": "Maximum VSWR in operational band"
+        },
+        {
+          "metric_name": "return_loss",
+          "aggregation": "min",
+          "operator": ">=",
+          "limit_value": 10.0,
+          "frequency_band": {
+            "start_hz": 1e9,
+            "stop_hz": 2e9
+          },
+          "description": "Minimum return loss in operational band"
+        }
+      ],
+      "pass_policy": {
+        "all_files_must_pass": true,
+        "required_paths": ["PRI"]
+      }
+    },
+    {
+      "name": "S-Parameter Wideband Requirements",
+      "test_type": "s_parameter",
+      "test_stage_id": 1,
+      "metric_limits": [
+        {
+          "metric_name": "gain_flatness",
+          "aggregation": "pkpk",
+          "operator": "<=",
+          "limit_value": 2.0,
+          "frequency_band": {
+            "start_hz": 0.5e9,
+            "stop_hz": 3e9
+          },
+          "description": "Peak-to-peak gain flatness in wideband"
+        }
+      ],
+      "pass_policy": {
+        "all_files_must_pass": false,
+        "required_paths": []
+      }
+    }
+  ]
+}
+

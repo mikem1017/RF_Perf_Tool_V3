@@ -1,0 +1,30 @@
+# Sample filenames for testing filename parsing
+# Format: filename | expected tokens
+
+# Standard format
+SN1234_PRI_L567890_AMB_20240101.s2p
+RED_sn0001_l123456_cld_240101.s2p
+L999999_HOT_20231231_PRI_SN9999.s3p
+
+# Case variations
+pri_SN1234_amb_L123456_20240101.s2p
+red_sn5678_CLD_l987654_240101.s2p
+
+# Missing tokens (should report missing)
+SN1234_PRI_20240101.s2p  # Missing part_number, temperature
+L567890_AMB.s2p  # Missing serial_number, path, date
+
+# Unknown tokens (should ignore)
+SN1234_PRI_L567890_AMB_20240101_UNKNOWN_TOKEN.s2p
+TEST_SN1234_PRI_L567890_AMB_20240101.s2p
+
+# Date variations
+SN1234_PRI_L567890_AMB_20240101.s2p  # YYYYMMDD
+SN1234_PRI_L567890_AMB_240101.s2p  # YYMMDD
+SN1234_PRI_L567890_AMB_2024-01-01.s2p  # ISO format (if supported)
+
+# Edge cases
+SN1234.s2p  # Minimal
+.s2p  # Empty name
+SN1234_PRI_L567890_AMB_20240101_EXTRA_DATA.s2p  # Extra data
+
