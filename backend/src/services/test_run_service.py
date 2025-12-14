@@ -85,7 +85,7 @@ class TestRunService:
                 file_id = self.db.add_test_run_file(test_run_id, {
                     "original_filename": filename,
                     "stored_path": str(stored_path),
-                    "effective_metadata": effective_metadata.model_dump(),
+                    "effective_metadata": effective_metadata.model_dump(mode='json'),
                 })
                 
                 # 6. Compute metrics
