@@ -121,6 +121,18 @@ class SQLiteDatabase(IDatabase):
         self.session.refresh(file)
         return file.id
     
+    def get_test_run_files(self, test_run_id: int) -> list[dict]:
+        """Get all files for a test run."""
+        files = self.session.query(TestRunFile).filter(TestRunFile.test_run_id == test_run_id).all()
+        return [{
+            "id": f.id,
+            "test_run_id": f.test_run_id,
+            "original_filename": f.original_filename,
+            "stored_path": f.stored_path,
+            "effective_metadata": f.effective_metadata,
+            "created_at": f.created_at
+        } for f in files]
+    
     def store_metrics(self, test_run_id: int, file_id: int, metrics_data: dict) -> None:
         """Store computed metrics for a test run file."""
         # Verify test run and file exist
@@ -147,6 +159,19 @@ class SQLiteDatabase(IDatabase):
             self.session.add(metrics)
         
         self.session.commit()
+    
+    def get_test_run_metrics(self, test_run_id: int, file_id: int) -> Optional[dict]:
+        """Get metrics for a test run file."""
+        metrics = self.session.query(TestRunMetrics).filter(
+            TestRunMetrics.test_run_id == test_run_id,
+            TestRunMetrics.file_id == file_id
+        ).first()
+        if metrics is None:
+            return None
+        return {
+            "metrics": metrics.metrics,
+            "frequencies": metrics.frequencies
+        }
     
     def store_compliance(self, test_run_id: int, file_id: int, compliance_data: dict) -> None:
         """Store compliance results for a test run file."""
@@ -176,6 +201,20 @@ class SQLiteDatabase(IDatabase):
             self.session.add(compliance)
         
         self.session.commit()
+    
+    def get_test_run_compliance(self, test_run_id: int, file_id: int) -> Optional[dict]:
+        """Get compliance results for a test run file."""
+        compliance = self.session.query(TestRunCompliance).filter(
+            TestRunCompliance.test_run_id == test_run_id,
+            TestRunCompliance.file_id == file_id
+        ).first()
+        if compliance is None:
+            return None
+        return {
+            "overall_pass": compliance.overall_pass,
+            "requirements": compliance.requirements,
+            "failure_reasons": compliance.failure_reasons
+        }
     
     # Helper methods to convert models to dicts
     def _device_to_dict(self, device: Device) -> dict:
