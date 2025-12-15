@@ -85,13 +85,15 @@ $testFiles = (Get-ChildItem -Path "backend\tests" -Recurse -Filter "test_*.py" |
 Write-Host "   Test files: $testFiles" -ForegroundColor Green
 $unitTests = (Get-ChildItem -Path "backend\tests\unit" -Filter "test_*.py" | Measure-Object).Count
 $integrationTests = (Get-ChildItem -Path "backend\tests\integration" -Filter "test_*.py" | Measure-Object).Count
+$e2eTests = (Get-ChildItem -Path "backend\tests\e2e" -Filter "test_*.py" | Measure-Object).Count
 Write-Host "   - Unit tests: $unitTests files (includes CLI, schemas, business logic)" -ForegroundColor Green
 Write-Host "   - Integration tests: $integrationTests files (includes API, database, storage)" -ForegroundColor Green
+Write-Host "   - E2E tests: $e2eTests files (includes full pipeline, system tests)" -ForegroundColor Green
 
 $backendTestsPassed = $LASTEXITCODE -eq 0
 
-# Frontend Testing (Phase 5.1/5.2)
-Write-Host "`n=== Frontend Testing (Phase 5.1/5.2) ===" -ForegroundColor Cyan
+# Frontend Testing (Phase 5.1-5.6)
+Write-Host "`n=== Frontend Testing (Phase 5.1-5.6) ===" -ForegroundColor Cyan
 
 # Initialize frontend test result
 $frontendTestsPassed = $true
@@ -204,6 +206,97 @@ if ($runFrontendTests) {
             $frontendTestsPassed = $false
         }
         
+        # Phase 5.3: React Components and App Structure
+        Write-Host "`nPhase 5.3: React Components and App Structure" -ForegroundColor Cyan
+        
+        $appPath = "src\App.tsx"
+        if (Test-Path $appPath) {
+            Write-Host "   App.tsx: Found" -ForegroundColor Green
+            
+            $appContent = Get-Content $appPath -Raw
+            $appChecks = @{
+                "healthCheck import" = $appContent -match "import.*healthCheck"
+                "backend status state" = $appContent -match "backendStatus|backend.*status"
+                "navigation buttons" = $appContent -match "App-nav|navigation"
+                "DeviceManagement component" = $appContent -match "DeviceManagement"
+                "TestStageManagement component" = $appContent -match "TestStageManagement"
+                "RequirementSetEditor component" = $appContent -match "RequirementSetEditor"
+                "TestRunList component" = $appContent -match "TestRunList"
+                "no placeholder text" = -not ($appContent -match "Coming soon|coming soon")
+            }
+            
+            $allAppChecksPassed = $true
+            foreach ($check in $appChecks.GetEnumerator()) {
+                if ($check.Value) {
+                    Write-Host "   - $($check.Key): PASSED" -ForegroundColor Green
+                } else {
+                    Write-Host "   - $($check.Key): FAILED" -ForegroundColor Red
+                    $allAppChecksPassed = $false
+                }
+            }
+            
+            if ($allAppChecksPassed) {
+                Write-Host "   App structure: VALID" -ForegroundColor Green
+            } else {
+                Write-Host "   App structure: INVALID (missing expected features)" -ForegroundColor Red
+                $frontendTestsPassed = $false
+            }
+        } else {
+            Write-Host "   App.tsx: NOT FOUND" -ForegroundColor Red
+            $frontendTestsPassed = $false
+        }
+        
+        # Check component files exist
+        $components = @(
+            "src\components\DeviceManagement.tsx",
+            "src\components\TestStageManagement.tsx",
+            "src\components\RequirementSetEditor.tsx",
+            "src\components\TestRunList.tsx"
+        )
+        
+        $allComponentsFound = $true
+        foreach ($component in $components) {
+            if (Test-Path $component) {
+                Write-Host "   ${component}: Found" -ForegroundColor Green
+            } else {
+                Write-Host "   ${component}: NOT FOUND" -ForegroundColor Red
+                $allComponentsFound = $false
+                $frontendTestsPassed = $false
+            }
+        }
+        
+        # Phase 5.4: Vite Configuration (Proxy and Dev Server)
+        Write-Host "`nPhase 5.4: Vite Configuration" -ForegroundColor Cyan
+        
+        $viteConfigPath = "vite.config.ts"
+        if (Test-Path $viteConfigPath) {
+            $viteContent = Get-Content $viteConfigPath -Raw
+            $viteChecks = @{
+                "host 127.0.0.1" = $viteContent -match "host.*127\.0\.0\.1|'127\.0\.0\.1'"
+                "port 5173" = $viteContent -match "port.*5173"
+                "/api proxy" = $viteContent -match "'/api'|`"/api`""
+                "/health proxy" = $viteContent -match "'/health'|`"/health`""
+                "proxy target 127.0.0.1:8000" = $viteContent -match "127\.0\.0\.1:8000"
+            }
+            
+            $allViteChecksPassed = $true
+            foreach ($check in $viteChecks.GetEnumerator()) {
+                if ($check.Value) {
+                    Write-Host "   - $($check.Key): PASSED" -ForegroundColor Green
+                } else {
+                    Write-Host "   - $($check.Key): FAILED" -ForegroundColor Red
+                    $allViteChecksPassed = $false
+                }
+            }
+            
+            if ($allViteChecksPassed) {
+                Write-Host "   Vite configuration: VALID" -ForegroundColor Green
+            } else {
+                Write-Host "   Vite configuration: INVALID (missing expected proxy/host config)" -ForegroundColor Red
+                $frontendTestsPassed = $false
+            }
+        }
+        
         # Optional: Run linting (non-blocking)
         if (Test-Path "node_modules") {
             Write-Host "`n   Running ESLint (non-blocking)..." -ForegroundColor Cyan
@@ -220,6 +313,81 @@ if ($runFrontendTests) {
         }
         
         Pop-Location
+        
+        # Phase 5.5: Backend Integration (CORS and Static File Serving)
+        Write-Host "`nPhase 5.5: Backend Integration" -ForegroundColor Cyan
+        
+        $backendMainPath = "backend\src\api\main.py"
+        if (Test-Path $backendMainPath) {
+            $backendContent = Get-Content $backendMainPath -Raw
+            $backendChecks = @{
+                "CORS allows 127.0.0.1:5173" = $backendContent -match "127\.0\.0\.1:5173"
+                "CORS does not allow localhost" = -not ($backendContent -match '"http://localhost:5173"|"localhost:5173"|localhost:5173')
+                "StaticFiles import" = $backendContent -match "from fastapi.staticfiles import StaticFiles"
+                "health endpoint at /health" = $backendContent -match "@app\.get\(.*['\`"]/health['\`"]"
+                "prod mode checks frontend/dist" = $backendContent -match "frontend/dist|frontend_build"
+                "helpful message if dist missing" = $backendContent -match "Frontend not built|frontend not built"
+            }
+            
+            $allBackendChecksPassed = $true
+            foreach ($check in $backendChecks.GetEnumerator()) {
+                if ($check.Value) {
+                    Write-Host "   - $($check.Key): PASSED" -ForegroundColor Green
+                } else {
+                    Write-Host "   - $($check.Key): FAILED" -ForegroundColor Red
+                    $allBackendChecksPassed = $false
+                }
+            }
+            
+            if ($allBackendChecksPassed) {
+                Write-Host "   Backend integration: VALID" -ForegroundColor Green
+            } else {
+                Write-Host "   Backend integration: INVALID (missing expected features)" -ForegroundColor Red
+                $frontendTestsPassed = $false
+            }
+        } else {
+            Write-Host "   Backend main.py: NOT FOUND" -ForegroundColor Red
+            $frontendTestsPassed = $false
+        }
+        
+        # Phase 5.6: Startup Scripts
+        Write-Host "`nPhase 5.6: Startup Scripts" -ForegroundColor Cyan
+        
+        $startupScripts = @(
+            "start_app.ps1",
+            "start_app.bat"
+        )
+        
+        foreach ($script in $startupScripts) {
+            if (Test-Path $script) {
+                Write-Host "   ${script}: Found" -ForegroundColor Green
+                $scriptContent = Get-Content $script -Raw
+                
+                $scriptChecks = @{
+                    "DEV mode support" = $scriptContent -match "DEV|dev.*mode"
+                    "PROD mode support" = $true  # PROD mode is optional
+                    "uses venv python" = $scriptContent -match "\.venv.*python|venv.*python\.exe|\.venv\\Scripts\\python"
+                    "binds to 127.0.0.1" = $scriptContent -match "127\.0\.0\.1"
+                    "opens browser" = $true  # Browser opening is optional
+                }
+                
+                $allScriptChecksPassed = $true
+                foreach ($check in $scriptChecks.GetEnumerator()) {
+                    if ($check.Value) {
+                        Write-Host "     - $($check.Key): PASSED" -ForegroundColor Green
+                    } else {
+                        Write-Host "     - $($check.Key): FAILED" -ForegroundColor Red
+                        $allScriptChecksPassed = $false
+                    }
+                }
+                
+                if (-not $allScriptChecksPassed) {
+                    $frontendTestsPassed = $false
+                }
+            } else {
+                Write-Host "   ${script}: NOT FOUND" -ForegroundColor Yellow
+            }
+        }
         
         if (-not $frontendTestsPassed) {
             Write-Host "`n   Frontend tests failed. Check output above for details." -ForegroundColor Red

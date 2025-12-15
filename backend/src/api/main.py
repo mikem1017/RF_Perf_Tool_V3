@@ -27,12 +27,11 @@ def create_app(dev_mode: bool = True) -> FastAPI:
     
     # CORS configuration
     if dev_mode:
-        # Dev mode: Allow frontend dev server
+        # Dev mode: Allow frontend dev server (127.0.0.1 only, not localhost or 0.0.0.0)
         app.add_middleware(
             CORSMiddleware,
             allow_origins=[
                 "http://127.0.0.1:5173",
-                "http://localhost:5173",
             ],
             allow_credentials=True,
             allow_methods=["*"],
@@ -55,8 +54,18 @@ def create_app(dev_mode: bool = True) -> FastAPI:
     # Static file serving (prod mode only)
     if not dev_mode:
         frontend_build = Path("frontend/dist")
-        if frontend_build.exists():
+        if frontend_build.exists() and frontend_build.is_dir():
+            # Serve static files from frontend/dist
             app.mount("/", StaticFiles(directory=str(frontend_build), html=True), name="static")
+        else:
+            # Frontend not built - provide helpful message
+            @app.get("/")
+            def frontend_not_built():
+                return {
+                    "error": "Frontend not built",
+                    "message": "Frontend build not found. To build the frontend, run: cd frontend && npm install && npm run build",
+                    "path": str(frontend_build.absolute())
+                }
     
     return app
 

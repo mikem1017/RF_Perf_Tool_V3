@@ -1,0 +1,22 @@
+.device-management {
+  width: 100%;
+}
+
+.device-list {
+  list-style: none;
+  padding: 0;
+}
+
+.device-list li {
+  padding: 10px;
+  border-bottom: 1px solid #eee;
+}
+
+.error {
+  color: #f44336;
+  padding: 10px;
+  background-color: #ffebee;
+  border-radius: 4px;
+  margin: 10px 0;
+}
+

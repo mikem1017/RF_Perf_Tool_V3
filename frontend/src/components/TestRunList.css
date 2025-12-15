@@ -1,0 +1,22 @@
+.test-run-list {
+  width: 100%;
+}
+
+.test-run-list-items {
+  list-style: none;
+  padding: 0;
+}
+
+.test-run-list-items li {
+  padding: 10px;
+  border-bottom: 1px solid #eee;
+}
+
+.error {
+  color: #f44336;
+  padding: 10px;
+  background-color: #ffebee;
+  border-radius: 4px;
+  margin: 10px 0;
+}
+

@@ -44,34 +44,40 @@ if not exist ".venv" (
     echo [3/6] Virtual environment exists
 )
 
-REM Activate virtual environment
-echo [4/6] Activating virtual environment...
-call .venv\Scripts\activate.bat
-if errorlevel 1 (
-    echo ERROR: Failed to activate virtual environment
+REM Verify virtual environment Python exists
+echo [4/6] Checking virtual environment...
+if not exist ".venv\Scripts\python.exe" (
+    echo ERROR: Virtual environment Python not found
     pause
     exit /b 1
 )
 
 REM Check if key Python dependencies are installed
-python -c "import fastapi, uvicorn, sqlalchemy" >nul 2>&1
+echo [5/6] Checking Python dependencies...
+.venv\Scripts\python.exe -c import fastapi >nul 2>&1
+if errorlevel 1 goto install_deps
+.venv\Scripts\python.exe -c import uvicorn >nul 2>&1
+if errorlevel 1 goto install_deps
+.venv\Scripts\python.exe -c import sqlalchemy >nul 2>&1
+if errorlevel 1 goto install_deps
+echo       Python dependencies already installed
+.venv\Scripts\python.exe -c import multipart >nul 2>&1
 if errorlevel 1 (
-    echo [5/6] Installing Python dependencies...
-    pip install -r backend\requirements.txt
-    if errorlevel 1 (
-        echo ERROR: Failed to install Python dependencies
-        pause
-        exit /b 1
-    )
-) else (
-    echo [5/6] Python dependencies already installed
-    REM Still check for python-multipart specifically (it's required for file uploads)
-    python -c "import multipart" >nul 2>&1
-    if errorlevel 1 (
-        echo       Installing python-multipart (required for file uploads)...
-        pip install python-multipart
-    )
+    echo       Installing python-multipart (required for file uploads)...
+    .venv\Scripts\pip.exe install python-multipart
 )
+goto deps_done
+
+:install_deps
+echo       Installing Python dependencies...
+.venv\Scripts\pip.exe install -r backend\requirements.txt
+if errorlevel 1 (
+    echo ERROR: Failed to install Python dependencies
+    pause
+    exit /b 1
+)
+
+:deps_done
 
 REM Check if frontend node_modules exists
 if not exist "frontend\node_modules" (
@@ -103,7 +109,7 @@ REM Get the current directory
 set SCRIPT_DIR=%~dp0
 
 REM Start backend in a new window
-start "RF Tool - Backend Server" cmd /k "cd /d %SCRIPT_DIR% && call .venv\Scripts\activate.bat && python -m backend.src.main"
+start "RF Tool - Backend Server" cmd /k "cd /d %SCRIPT_DIR% && .venv\Scripts\python.exe -m uvicorn backend.src.api.main:app --host 127.0.0.1 --port 8000 --reload"
 
 REM Wait a moment for backend to start
 timeout /t 3 /nobreak >nul
@@ -128,4 +134,3 @@ echo Close those windows to stop the servers.
 echo.
 echo Press any key to exit this window (servers will continue running)...
 pause >nul
-
